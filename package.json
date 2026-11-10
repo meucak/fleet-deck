@@ -1,0 +1,25 @@
+{
+  "name": "fleet-deck",
+  "version": "1.0.0",
+  "description": "Fleet Deck — Sovereign Multi-Machine Mission Control (Kasa, Toshi, Quasimodo, Docker, Tailscale & Depo)",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "keywords": [
+    "mission-control",
+    "homelab",
+    "tailscale",
+    "docker",
+    "ssh-dispatch",
+    "apple-hig",
+    "fleet-deck"
+  ],
+  "author": "kasa",
+  "license": "MIT"
+}
