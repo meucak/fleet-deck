@@ -44,6 +44,9 @@ test('UI & Apple HIG Compliance: HTML, CSS, JS, PWA Manifest, and Vector Icon ex
   // Frontend Logic Checks
   assert.match(js, /Escape/, 'Must bind Escape key to close modals');
   assert.match(js, /confirmModal/, 'Must gate destructive actions behind confirmation modal');
+  assert.match(js, /renderSparklineSvg/, 'Must render inline SVG telemetry sparklines');
+  assert.match(html, /id="scratchpadTextarea"/, 'Must include Sovereign Scratchpad textarea');
+  assert.match(html, /id="screenshotModal"/, 'Must include Live Toshi Screenshot Preview modal');
 
   // PWA Manifest Checks
   assert.equal(manifest.short_name, 'Fleet Deck');

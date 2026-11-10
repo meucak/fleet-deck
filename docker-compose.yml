@@ -1,0 +1,31 @@
+services:
+  fleet-deck:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fleet-deck
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    mem_limit: 256m
+    cpus: 0.50
+    environment:
+      - PORT=8091
+      - NODE_ENV=production
+      - DEPO_PATH=/host-depo
+      - DOCKER_SOCK_PATH=/var/run/docker.sock
+      - TAILSCALE_SOCK_PATH=/var/run/tailscale/tailscaled.sock
+      - SSH_IDENTITY_FILE=/root/.ssh/id_ed25519
+      - TOSHI_SSH_TARGET=toshi@100.79.246.19
+      - QUASIMODO_SSH_TARGET=semsettin@100.108.206.20
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock:ro
+      - /home/kasa/.ssh:/host-ssh:ro
+      - /home/kasa/Depo:/host-depo:ro
+      - /home/kasa/apps/fil/server/logs:/host-fil-logs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8091/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3

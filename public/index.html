@@ -42,6 +42,14 @@
             autocomplete="off"
           >
         </div>
+        <button type="button" id="toshiLiveScreenBtn" class="btn btn-secondary" title="Toshi Ekranını Canlı Görüntüle">
+          <span aria-hidden="true">▣</span>
+          <span>Toshi Ekranı</span>
+        </button>
+        <a href="/api/fleet/export" class="btn btn-secondary" title="Tam Sistem Raporunu JSON Olarak İndir" download>
+          <span aria-hidden="true">⇩</span>
+          <span>Rapor İndir</span>
+        </a>
         <button type="button" id="refreshBtn" class="btn btn-secondary" title="Telemetriyi Şimdi Yenile (Kısayol: R)">
           <span aria-hidden="true">↻</span>
           <span>Yenile</span>
@@ -58,12 +66,12 @@
     <!-- Toast / Status Announcer -->
     <div id="liveToast" class="toast-banner hidden" role="status" aria-live="polite"></div>
 
-    <!-- SECTION 1: TRI-NODE HARDWARE TELEMETRY -->
+    <!-- SECTION 1: TRI-NODE HARDWARE TELEMETRY & SPARKLINES -->
     <section class="section-block" aria-labelledby="sectionNodesHeading">
       <div class="section-header">
         <div>
-          <h2 id="sectionNodesHeading" class="section-title">Cihaz Filosu Telemetrisi</h2>
-          <p class="section-desc">Kasa (Debian Sunucu), Toshi (Linux Dizüstü) ve Quasimodo (Dell E6430 Windows) anlık donanım durumu</p>
+          <h2 id="sectionNodesHeading" class="section-title">Cihaz Filosu Telemetrisi ve Trend Grafikleri</h2>
+          <p class="section-desc">Kasa (Debian Sunucu), Toshi (Linux Dizüstü) ve Quasimodo (Dell E6430 Windows) anlık donanım ve gecikme durumu</p>
         </div>
         <div class="summary-counters">
           <span class="counter-chip">
@@ -119,7 +127,54 @@
       </div>
     </section>
 
-    <!-- SECTION 3: DOCKER CONTAINER FLEET & WEB PORTAL -->
+    <!-- SECTION 3: SOVEREIGN SCRATCHPAD, CLIPBOARD BRIDGE & REMOTE URL OPENER -->
+    <section class="section-block two-col-layout" aria-labelledby="sectionScratchpadHeading">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h2 id="sectionScratchpadHeading" class="section-title">Ortak Not Defteri ve Cihazlar Arası Pano Köprüsü</h2>
+          <p class="section-desc">Kasa üzerinde kalıcı saklanır; tek dokunuşla Toshi (X11) veya Quasimodo (Windows) sistem panosuna gönderilir</p>
+        </div>
+        <div class="form-group">
+          <label for="scratchpadTextarea" class="form-label">Ortak Metin / Komut / Not</label>
+          <textarea id="scratchpadTextarea" class="form-textarea mono-input" rows="4" placeholder="Cihazlar arasında paylaşılacak not, komut veya bağlantı..."></textarea>
+        </div>
+        <div class="button-strip">
+          <button type="button" id="saveScratchpadBtn" class="btn btn-primary">Kaydet</button>
+          <button type="button" id="pushClipToshiBtn" class="btn btn-secondary">Toshi Panosuna Kopyala</button>
+          <button type="button" id="pushClipQuasimodoBtn" class="btn btn-secondary">Quasimodo Panosuna Kopyala</button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-header">
+          <h2 class="section-title">Uzaktan Tarayıcı &amp; Toshi Donanım Denetimi</h2>
+          <p class="section-desc">Bağlantıyı doğrudan Toshi veya Quasimodo ekranında açın; Toshi ses ve parlaklığını ayarlayın</p>
+        </div>
+        <div class="form-group">
+          <label for="openUrlInput" class="form-label">Uzak Cihazda Açılacak URL (http / https)</label>
+          <div class="form-row">
+            <input type="url" id="openUrlInput" class="form-input mono-input form-group-grow" placeholder="http://100.69.155.110:8090" value="http://100.69.155.110:8090">
+            <button type="button" id="openUrlToshiBtn" class="btn btn-primary">Toshi'de Aç ↗</button>
+            <button type="button" id="openUrlQuasimodoBtn" class="btn btn-secondary">Quasimodo'da Aç ↗</button>
+          </div>
+        </div>
+
+        <div class="hardware-control-group">
+          <div class="form-label">Toshi Ses ve Ekran Parlaklığı (Uzaktan Hızlı Ayar)</div>
+          <div class="button-strip">
+            <button type="button" class="btn btn-secondary btn-sm" data-toshi-hw="mute" data-toshi-val="0">🔇 Sessiz Değiştir</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-toshi-hw="volume" data-toshi-val="35">🔉 Ses %35</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-toshi-hw="volume" data-toshi-val="75">🔊 Ses %75</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-toshi-hw="volume" data-toshi-val="100">🔊 Ses %100</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-toshi-hw="brightness" data-toshi-val="40">☀ Parlaklık %40</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-toshi-hw="brightness" data-toshi-val="75">☀ Parlaklık %75</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-toshi-hw="brightness" data-toshi-val="100">☀ Parlaklık %100</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: DOCKER CONTAINER FLEET & WEB PORTAL -->
     <section class="section-block" aria-labelledby="sectionDockerHeading">
       <div class="section-header">
         <div>
@@ -155,7 +210,7 @@
       </div>
     </section>
 
-    <!-- SECTION 4: SAFE AD-HOC TERMINAL DISPATCH & AUDIT LOG -->
+    <!-- SECTION 5: SAFE AD-HOC TERMINAL DISPATCH & AUDIT LOG -->
     <section class="section-block two-col-layout" aria-labelledby="sectionTerminalHeading">
       <div class="panel-card">
         <div class="panel-header">
@@ -217,7 +272,7 @@
       </div>
     </section>
 
-    <!-- SECTION 5: TAILSCALE MESH RADAR & DEPO STORAGE VAULT -->
+    <!-- SECTION 6: TAILSCALE MESH RADAR & DEPO STORAGE VAULT -->
     <section class="section-block two-col-layout" aria-labelledby="sectionTailscaleHeading">
       <div class="panel-card">
         <div class="panel-header">
@@ -270,6 +325,26 @@
         </div>
       </div>
       <pre id="logsModalPre" class="terminal-pre logs-pre">Yükleniyor...</pre>
+    </div>
+  </div>
+
+  <!-- LIVE TOSHI SCREENSHOT PREVIEW MODAL -->
+  <div id="screenshotModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="screenshotModalTitle">
+    <div class="modal-sheet modal-sheet-wide">
+      <div class="modal-header modal-header-row">
+        <div>
+          <h3 id="screenshotModalTitle" class="modal-title">Toshi Canlı Masaüstü Önizleme (:0)</h3>
+          <p id="screenshotModalMeta" class="section-desc mono-num">Yükleniyor...</p>
+        </div>
+        <div class="modal-header-btns">
+          <button type="button" id="refreshScreenshotBtn" class="btn btn-primary">↻ Yeni Kare Yakala</button>
+          <a id="downloadScreenshotLink" href="#" download="toshi-screen.png" class="btn btn-secondary">PNG İndir</a>
+          <button type="button" id="closeScreenshotModalBtn" class="btn btn-secondary">Kapat (Esc)</button>
+        </div>
+      </div>
+      <div class="screenshot-frame-wrap">
+        <img id="screenshotModalImg" alt="Toshi Masaüstü Ekran Görüntüsü" class="screenshot-img hidden">
+      </div>
     </div>
   </div>
 

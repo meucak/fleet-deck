@@ -17,6 +17,7 @@
     wsStatusText: document.getElementById('wsStatusText'),
     lastUpdatedTime: document.getElementById('lastUpdatedTime'),
     globalSearchInput: document.getElementById('globalSearchInput'),
+    toshiLiveScreenBtn: document.getElementById('toshiLiveScreenBtn'),
     refreshBtn: document.getElementById('refreshBtn'),
     themeToggleBtn: document.getElementById('themeToggleBtn'),
     themeLabel: document.getElementById('themeLabel'),
@@ -32,6 +33,13 @@
     actionOutputMeta: document.getElementById('actionOutputMeta'),
     actionOutputPre: document.getElementById('actionOutputPre'),
     closeActionOutputBtn: document.getElementById('closeActionOutputBtn'),
+    scratchpadTextarea: document.getElementById('scratchpadTextarea'),
+    saveScratchpadBtn: document.getElementById('saveScratchpadBtn'),
+    pushClipToshiBtn: document.getElementById('pushClipToshiBtn'),
+    pushClipQuasimodoBtn: document.getElementById('pushClipQuasimodoBtn'),
+    openUrlInput: document.getElementById('openUrlInput'),
+    openUrlToshiBtn: document.getElementById('openUrlToshiBtn'),
+    openUrlQuasimodoBtn: document.getElementById('openUrlQuasimodoBtn'),
     servicePortalGrid: document.getElementById('servicePortalGrid'),
     dockerTableBody: document.getElementById('dockerTableBody'),
     terminalForm: document.getElementById('terminalForm'),
@@ -54,7 +62,13 @@
     logsModalSubtitle: document.getElementById('logsModalSubtitle'),
     logsModalPre: document.getElementById('logsModalPre'),
     refreshLogsBtn: document.getElementById('refreshLogsBtn'),
-    closeLogsModalBtn: document.getElementById('closeLogsModalBtn')
+    closeLogsModalBtn: document.getElementById('closeLogsModalBtn'),
+    screenshotModal: document.getElementById('screenshotModal'),
+    screenshotModalMeta: document.getElementById('screenshotModalMeta'),
+    screenshotModalImg: document.getElementById('screenshotModalImg'),
+    refreshScreenshotBtn: document.getElementById('refreshScreenshotBtn'),
+    downloadScreenshotLink: document.getElementById('downloadScreenshotLink'),
+    closeScreenshotModalBtn: document.getElementById('closeScreenshotModalBtn')
   };
 
   function escapeHtml(str) {
@@ -100,6 +114,45 @@
     showToast._timer = setTimeout(() => {
       els.liveToast.classList.add('hidden');
     }, 4000);
+  }
+
+  /* Inline SVG Sparkline Generator */
+  function renderSparklineSvg(points, stats) {
+    const list = Array.isArray(points) && points.length > 0 ? points : [{ cpuPercent: 0 }];
+    const width = 260;
+    const height = 34;
+    const vals = list.map((p) => Math.min(100, Math.max(0, Number(p.cpuPercent) || 0)));
+    const stepX = vals.length > 1 ? width / (vals.length - 1) : width;
+
+    const coords = vals.map((v, idx) => {
+      const x = Math.round(idx * stepX * 10) / 10;
+      const y = Math.round((height - 4 - (v / 100) * (height - 8)) * 10) / 10;
+      return `${x},${y}`;
+    });
+    const polylinePoints = vals.length === 1 ? `0,${coords[0].split(',')[1]} ${width},${coords[0].split(',')[1]}` : coords.join(' ');
+
+    const avg = stats ? stats.cpuAvg : vals[vals.length - 1];
+    const max = stats ? stats.cpuMax : vals[vals.length - 1];
+    const ping = stats && stats.lastPingMs ? `${stats.lastPingMs} ms` : '--';
+
+    return `
+      <div class="sparkline-box">
+        <div class="sparkline-header mono-num">
+          <span>CPU Trend (Ort: ${avg}% · Zirve: ${max}%)</span>
+          <span>Yanıt: ${escapeHtml(ping)}</span>
+        </div>
+        <svg class="sparkline-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="CPU Trend Sparkline">
+          <polyline
+            fill="none"
+            stroke="var(--accent-primary)"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            points="${polylinePoints}"
+          />
+        </svg>
+      </div>
+    `;
   }
 
   /* Theme Management */
@@ -163,6 +216,36 @@
     }
   }
 
+  /* Live Toshi Screenshot Preview Modal */
+  async function openScreenshotModal() {
+    els.screenshotModal.classList.remove('hidden');
+    els.closeScreenshotModalBtn.focus();
+    await fetchLiveToshiScreenshot();
+  }
+
+  function closeScreenshotModal() {
+    els.screenshotModal.classList.add('hidden');
+  }
+
+  async function fetchLiveToshiScreenshot() {
+    els.screenshotModalMeta.textContent = 'Toshi (:0) ekranı yakalanıyor...';
+    try {
+      const res = await fetch('/api/nodes/toshi/screenshot');
+      const data = await res.json();
+      if (!res.ok || !data.ok || !data.base64) {
+        els.screenshotModalMeta.textContent = `Hata: ${data.error || 'Ekran yakalanamadı'}`;
+        return;
+      }
+      const dataUri = `data:${data.mimeType || 'image/png'};base64,${data.base64}`;
+      els.screenshotModalImg.src = dataUri;
+      els.screenshotModalImg.classList.remove('hidden');
+      els.downloadScreenshotLink.href = dataUri;
+      els.screenshotModalMeta.textContent = `Yakalandı: ${new Date(data.capturedAt).toLocaleTimeString('tr-TR')} (${data.durationMs || 0} ms)`;
+    } catch (err) {
+      els.screenshotModalMeta.textContent = `Bağlantı hatası: ${err.message}`;
+    }
+  }
+
   /* Render Node Telemetry Cards */
   function renderNodeCard(nodeData) {
     if (!nodeData) return '';
@@ -172,6 +255,27 @@
       : '<span class="status-pill status-offline"><span aria-hidden="true">■</span> Çevrimdışı</span>';
 
     if (!isOnline) {
+      const lk = nodeData.lastKnown;
+      let lkHtml = '';
+      if (lk) {
+        const lkBadges = [];
+        if (lk.lastSeenOnlineAt) {
+          lkBadges.push(`<span class="kv-badge">Son Aktif: <strong>${escapeHtml(new Date(lk.lastSeenOnlineAt).toLocaleTimeString('tr-TR'))}</strong></span>`);
+        }
+        if (lk.battery) {
+          lkBadges.push(`<span class="kv-badge">Son Pil: <strong>${escapeHtml(lk.battery.status || `${lk.battery.percent}%`)}</strong></span>`);
+        }
+        if (lk.disk) {
+          const dLabel = lk.disk.totalGb !== undefined
+            ? `C: ${lk.disk.usedGb} / ${lk.disk.totalGb} GB (${lk.disk.freeGb} GB Boş)`
+            : `${Math.round(lk.disk.usedMb / 1024)} / ${Math.round(lk.disk.totalMb / 1024)} GB`;
+          lkBadges.push(`<span class="kv-badge">Son Disk: <strong>${escapeHtml(dLabel)}</strong></span>`);
+        }
+        if (lk.memory) {
+          lkBadges.push(`<span class="kv-badge">Son RAM: <strong>${lk.memory.usedMb} / ${lk.memory.totalMb} MB</strong></span>`);
+        }
+        lkHtml = `<div class="node-chips-row">${lkBadges.join('')}</div>`;
+      }
       return `
         <article class="node-card" data-node="${escapeHtml(nodeData.node)}">
           <div class="node-card-header">
@@ -181,7 +285,8 @@
             </div>
             ${statusBadge}
           </div>
-          <p class="section-desc">Düğüme şu an ulaşılamıyor (${escapeHtml(nodeData.error || 'Uyku modunda veya kapalı')}).</p>
+          <p class="section-desc">Düğüm şu an uyku modunda veya kapalı (${escapeHtml(nodeData.error || 'Çevrimdışı')}).</p>
+          ${lkHtml}
         </article>
       `;
     }
@@ -202,6 +307,12 @@
         diskText = `${Math.round(nodeData.disk.usedMb / 1024)} / ${Math.round(nodeData.disk.totalMb / 1024)} GB (${diskPct}%)`;
       }
     }
+
+    const nodeHist = state.summary && state.summary.history && state.summary.history[nodeData.node];
+    const sparklineHtml = renderSparklineSvg(
+      nodeHist ? nodeHist.points : [{ cpuPercent: cpuPct }],
+      nodeHist ? nodeHist.stats : { cpuAvg: cpuPct, cpuMax: cpuPct, lastPingMs: nodeData.pingMs }
+    );
 
     const extraBadges = [];
     extraBadges.push(`<span class="kv-badge">Açık Süre: <strong>${escapeHtml(formatDurationUptime(nodeData.uptimeSeconds))}</strong></span>`);
@@ -263,6 +374,8 @@
             </div>
           </div>
         </div>
+
+        ${sparklineHtml}
 
         <div class="node-chips-row">
           ${extraBadges.join('')}
@@ -531,6 +644,86 @@
       .join('');
   }
 
+  /* Scratchpad, Clipboard & Remote URL Actions */
+  async function loadScratchpad() {
+    try {
+      const res = await fetch('/api/scratchpad');
+      const data = await res.json();
+      if (data.ok && els.scratchpadTextarea) {
+        els.scratchpadTextarea.value = data.text || '';
+      }
+    } catch (_) {}
+  }
+
+  async function saveScratchpad() {
+    const text = els.scratchpadTextarea.value;
+    try {
+      const res = await fetch('/api/scratchpad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast('Ortak not kaydedildi ve eşitlendi.');
+      }
+    } catch (err) {
+      showToast(`Not kaydedilemedi: ${err.message}`);
+    }
+  }
+
+  async function pushToNodeClipboard(node) {
+    const text = els.scratchpadTextarea.value;
+    if (!text.trim()) {
+      showToast('Panoya göndermek için önce metin girin.');
+      return;
+    }
+    showToast(`${node} panosuna kopyalanıyor...`);
+    try {
+      const res = await fetch('/api/dispatch/clipboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ node, text })
+      });
+      const data = await res.json();
+      showToast(data.ok ? `${node.toUpperCase()} sistem panosuna kopyalandı (${data.length} kr).` : `Pano hatası: ${data.error}`);
+    } catch (err) {
+      showToast(`Pano bağlantı hatası: ${err.message}`);
+    }
+  }
+
+  async function openUrlOnRemoteNode(node) {
+    const url = els.openUrlInput.value.trim();
+    if (!url) return;
+    showToast(`URL ${node} üzerinde açılıyor...`);
+    try {
+      const res = await fetch('/api/dispatch/open-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ node, url })
+      });
+      const data = await res.json();
+      showToast(data.ok ? `URL ${node.toUpperCase()} ekranında açıldı.` : `URL hatası: ${data.error}`);
+    } catch (err) {
+      showToast(`Bağlantı hatası: ${err.message}`);
+    }
+  }
+
+  async function controlToshiHw(type, value) {
+    showToast(`Toshi ${type} ayarlanıyor...`);
+    try {
+      const res = await fetch('/api/nodes/toshi/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, value: Number(value) })
+      });
+      const data = await res.json();
+      showToast(data.ok ? `Toshi: ${data.stdout || type + ' güncellendi'}` : `Hata: ${data.error}`);
+    } catch (err) {
+      showToast(`Toshi donanım hatası: ${err.message}`);
+    }
+  }
+
   /* Data Fetching & WebSocket */
   async function fetchFleetSummary(force = false) {
     try {
@@ -579,6 +772,8 @@
           renderNodesSection();
           renderDockerAndPortal();
           renderTailscaleAndDepo();
+        } else if (msg.type === 'scratchpad-update' && msg.data && document.activeElement !== els.scratchpadTextarea) {
+          els.scratchpadTextarea.value = msg.data.text || '';
         }
       } catch (_) {}
     });
@@ -594,6 +789,22 @@
   els.refreshBtn.addEventListener('click', () => {
     showToast('Telemetri yenileniyor...');
     fetchFleetSummary(true);
+  });
+
+  els.toshiLiveScreenBtn.addEventListener('click', openScreenshotModal);
+  els.refreshScreenshotBtn.addEventListener('click', fetchLiveToshiScreenshot);
+  els.closeScreenshotModalBtn.addEventListener('click', closeScreenshotModal);
+
+  els.saveScratchpadBtn.addEventListener('click', saveScratchpad);
+  els.pushClipToshiBtn.addEventListener('click', () => pushToNodeClipboard('toshi'));
+  els.pushClipQuasimodoBtn.addEventListener('click', () => pushToNodeClipboard('quasimodo'));
+  els.openUrlToshiBtn.addEventListener('click', () => openUrlOnRemoteNode('toshi'));
+  els.openUrlQuasimodoBtn.addEventListener('click', () => openUrlOnRemoteNode('quasimodo'));
+
+  document.querySelectorAll('button[data-toshi-hw]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      controlToshiHw(btn.getAttribute('data-toshi-hw'), btn.getAttribute('data-toshi-val'));
+    });
   });
 
   els.themeToggleBtn.addEventListener('click', toggleTheme);
@@ -723,6 +934,10 @@
         closeLogsModal();
         return;
       }
+      if (!els.screenshotModal.classList.contains('hidden')) {
+        closeScreenshotModal();
+        return;
+      }
     }
 
     const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
@@ -752,5 +967,6 @@
   initTheme();
   fetchFleetSummary(false);
   fetchActionsAndAudit();
+  loadScratchpad();
   connectWebSocket();
 })();

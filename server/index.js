@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { WebSocketServer } = require('ws');
 const { createFleetCollector } = require('./collector');
+const { createScratchpadService } = require('./scratchpad');
 const defaultActions = require('./actions');
 
 const MIME_TYPES = {
@@ -55,6 +56,7 @@ function createFleetServer(options = {}) {
   const port = options.port !== undefined ? Number(options.port) : Number(process.env.PORT || 8091);
   const collector = options.collector || createFleetCollector();
   const actions = options.actions || defaultActions;
+  const scratchpad = options.scratchpad || createScratchpadService();
   const publicDir = options.publicDir || path.join(__dirname, '..', 'public');
 
   const server = http.createServer(async (req, res) => {
@@ -66,6 +68,7 @@ function createFleetServer(options = {}) {
         sendJson(res, 200, {
           ok: true,
           service: 'fleet-deck',
+          version: '2.0.0',
           uptimeSeconds: Math.floor(process.uptime()),
           timestamp: new Date().toISOString()
         });
@@ -76,6 +79,72 @@ function createFleetServer(options = {}) {
         const force = parsedUrl.searchParams.get('force') === 'true';
         const summary = await collector.getFleetSummary({ force });
         sendJson(res, 200, summary);
+        return;
+      }
+
+      if (req.method === 'GET' && pathname === '/api/fleet/export') {
+        const summary = await collector.getFleetSummary({ force: false });
+        const exportPayload = {
+          exportedFrom: 'fleet-deck',
+          version: '3.0.0',
+          exportedAt: new Date().toISOString(),
+          summary,
+          auditLog: actions.getAuditLog()
+        };
+        const body = JSON.stringify(exportPayload, null, 2);
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition': `attachment; filename="fleet-deck-snapshot-${stamp}.json"`,
+          'Cache-Control': 'no-store',
+          'Content-Length': Buffer.byteLength(body)
+        });
+        res.end(body);
+        return;
+      }
+
+      if (req.method === 'GET' && pathname === '/api/nodes/toshi/screenshot') {
+        const snap = await collector.captureToshiScreenshot();
+        sendJson(res, snap.ok ? 200 : 502, snap);
+        return;
+      }
+
+      if (req.method === 'POST' && pathname === '/api/nodes/toshi/control') {
+        const body = await readJsonBody(req);
+        try {
+          const out = await collector.controlToshiHardware(body.type, body.value);
+          sendJson(res, out.ok ? 200 : 502, out);
+        } catch (err) {
+          sendJson(res, err.statusCode || 500, { ok: false, error: err.message });
+        }
+        return;
+      }
+
+      if (req.method === 'GET' && pathname === '/api/scratchpad') {
+        const note = await scratchpad.getNote();
+        sendJson(res, 200, { ok: true, ...note });
+        return;
+      }
+
+      if (req.method === 'POST' && pathname === '/api/scratchpad') {
+        const body = await readJsonBody(req);
+        const saved = await scratchpad.saveNote(body.text);
+        broadcastMessage({ type: 'scratchpad-update', data: saved });
+        sendJson(res, 200, { ok: true, ...saved });
+        return;
+      }
+
+      if (req.method === 'POST' && pathname === '/api/dispatch/clipboard') {
+        const body = await readJsonBody(req);
+        const out = await scratchpad.pushClipboard(body.node, body.text);
+        sendJson(res, out.ok ? 200 : 400, out);
+        return;
+      }
+
+      if (req.method === 'POST' && pathname === '/api/dispatch/open-url') {
+        const body = await readJsonBody(req);
+        const out = await scratchpad.openUrlOnNode(body.node, body.url);
+        sendJson(res, out.ok ? 200 : 400, out);
         return;
       }
 
@@ -170,16 +239,21 @@ function createFleetServer(options = {}) {
   const wss = new WebSocketServer({ server, path: '/ws' });
   let broadcastTimer = null;
 
+  function broadcastMessage(obj) {
+    if (wss.clients.size === 0) return;
+    const payload = JSON.stringify(obj);
+    for (const client of wss.clients) {
+      if (client.readyState === 1) {
+        client.send(payload);
+      }
+    }
+  }
+
   async function broadcastUpdate() {
     if (wss.clients.size === 0) return;
     try {
       const summary = await collector.getFleetSummary({ force: false });
-      const payload = JSON.stringify({ type: 'fleet-summary', data: summary });
-      for (const client of wss.clients) {
-        if (client.readyState === 1) {
-          client.send(payload);
-        }
-      }
+      broadcastMessage({ type: 'fleet-summary', data: summary });
     } catch (_) {}
   }
 
@@ -226,7 +300,7 @@ function createFleetServer(options = {}) {
 if (require.main === module) {
   const app = createFleetServer();
   app.start().then((actualPort) => {
-    console.log(`[Fleet Deck] Sovereign Mission Control listening on http://0.0.0.0:${actualPort}`);
+    console.log(`[Fleet Deck v2.0] Sovereign Mission Control listening on http://0.0.0.0:${actualPort}`);
   }).catch((err) => {
     console.error('[Fleet Deck] Startup failed:', err);
     process.exit(1);

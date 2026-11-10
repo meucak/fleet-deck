@@ -1,0 +1,42 @@
+{
+  "toshi": {
+    "node": "toshi",
+    "hostname": "toshi",
+    "ip": "100.79.246.19",
+    "os": "Linux (LXQt)",
+    "online": true,
+    "cpuPercent": 5,
+    "load": {
+      "load1": 0.2,
+      "load5": 0.2,
+      "load15": 0.2
+    },
+    "temperatureC": 0,
+    "battery": {
+      "percent": 100,
+      "status": "Full"
+    },
+    "memory": {
+      "totalMb": 0,
+      "usedMb": 0,
+      "availableMb": 0,
+      "percent": 0
+    },
+    "disk": {
+      "totalMb": 0,
+      "usedMb": 0,
+      "availableMb": 0,
+      "percent": 0
+    },
+    "wifi": {
+      "interface": "wlp8s0",
+      "linkQuality": 0,
+      "qualityPercent": 0,
+      "signalDbm": 0
+    },
+    "controlCenterService": "unknown",
+    "uptimeSeconds": 0,
+    "pingMs": 15,
+    "lastSeenOnlineAt": "2026-11-10T22:11:35.322Z"
+  }
+}

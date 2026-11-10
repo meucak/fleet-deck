@@ -85,11 +85,15 @@ function sshExec(host, remoteCommand, options = {}) {
   const timeoutMs = options.timeoutMs || 5000;
   const sshKeyPath = options.identityFile || process.env.SSH_IDENTITY_FILE || '/root/.ssh/id_ed25519';
   const args = [
+    '-o', 'LogLevel=ERROR',
     '-o', 'BatchMode=yes',
     '-o', 'StrictHostKeyChecking=accept-new',
-    '-o', 'ConnectTimeout=3',
+    '-o', 'ConnectTimeout=4',
     '-o', 'ServerAliveInterval=2',
-    '-o', 'ServerAliveCountMax=1'
+    '-o', 'ServerAliveCountMax=2',
+    '-o', 'ControlMaster=auto',
+    '-o', 'ControlPath=/tmp/ssh-mux-%C',
+    '-o', 'ControlPersist=120'
   ];
   if (options.useIdentityFile !== false && sshKeyPath) {
     args.push('-i', sshKeyPath);

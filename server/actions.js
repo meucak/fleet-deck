@@ -35,10 +35,10 @@ const ACTIONS_CATALOG = [
     id: 'toshi-take-screenshot',
     node: 'toshi',
     label: 'Capture Desktop Screenshot',
-    description: 'Triggers toshi-screenshot on Display :0 and saves to Toshi Pictures/Screenshots.',
+    description: 'Non-interactively captures Toshi Display :0 via maim -u and copies directly to Toshi clipboard.',
     category: 'Utility',
     destructive: false,
-    command: 'DISPLAY=:0 /home/toshi/.local/bin/toshi-screenshot && echo "Screenshot captured on Toshi."'
+    command: 'DISPLAY=:0 XAUTHORITY=/home/toshi/.Xauthority maim -u /tmp/toshi_fleet_snap.png && DISPLAY=:0 XAUTHORITY=/home/toshi/.Xauthority xclip -selection clipboard -t image/png -i /tmp/toshi_fleet_snap.png >/dev/null 2>&1 && echo "Full desktop screenshot captured and copied to Toshi clipboard (/tmp/toshi_fleet_snap.png)."'
   },
   {
     id: 'toshi-launch-gta',
@@ -159,16 +159,22 @@ function recordAudit(entry) {
   }
 }
 
-function getActionsCatalog() {
-  return ACTIONS_CATALOG.map((a) => ({
-    id: a.id,
-    node: a.node,
-    label: a.label,
-    description: a.description,
-    category: a.category,
-    destructive: Boolean(a.destructive),
-    confirmText: a.confirmText || null
-  }));
+function getActionsCatalog(options = {}) {
+  return ACTIONS_CATALOG.map((a) => {
+    const item = {
+      id: a.id,
+      node: a.node,
+      label: a.label,
+      description: a.description,
+      category: a.category,
+      destructive: Boolean(a.destructive),
+      confirmText: a.confirmText || null
+    };
+    if (options.includeInternalCommand) {
+      item.command = a.command || null;
+    }
+    return item;
+  });
 }
 
 async function executeAction(actionId, deps = {}) {

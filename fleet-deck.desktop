@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Fleet Deck
+Comment=Sovereign Multi-Machine Mission Control (Kasa, Toshi, Quasimodo)
+Exec=/bin/bash -c "chromium --app=http://100.69.155.110:8091 || xdg-open http://100.69.155.110:8091"
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;Network;
+StartupNotify=true
