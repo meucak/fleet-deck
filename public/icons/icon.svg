@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Fleet Deck Icon">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141923"/>
+      <stop offset="100%" stop-color="#0b0e14"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a84ff"/>
+      <stop offset="100%" stop-color="#30d158"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg)" stroke="#2c3545" stroke-width="6"/>
+  <rect x="36" y="44" width="184" height="52" rx="14" fill="#1c2432" stroke="#344156" stroke-width="3"/>
+  <circle cx="64" cy="70" r="10" fill="#30d158"/>
+  <rect x="88" y="62" width="76" height="16" rx="8" fill="#e5eef8"/>
+  <rect x="176" y="62" width="28" height="16" rx="8" fill="#0a84ff"/>
+
+  <rect x="36" y="110" width="86" height="102" rx="16" fill="#1c2432" stroke="#344156" stroke-width="3"/>
+  <circle cx="60" cy="136" r="8" fill="#0a84ff"/>
+  <rect x="48" y="158" width="62" height="10" rx="5" fill="#93a4bc"/>
+  <rect x="48" y="178" width="44" height="10" rx="5" fill="#30d158"/>
+
+  <rect x="134" y="110" width="86" height="102" rx="16" fill="#1c2432" stroke="#344156" stroke-width="3"/>
+  <circle cx="158" cy="136" r="8" fill="#ff9f0a"/>
+  <rect x="146" y="158" width="62" height="10" rx="5" fill="#93a4bc"/>
+  <rect x="146" y="178" width="52" height="10" rx="5" fill="url(#accent)"/>
+</svg>

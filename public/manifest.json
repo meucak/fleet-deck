@@ -1,0 +1,17 @@
+{
+  "name": "Fleet Deck — Sovereign Mission Control",
+  "short_name": "Fleet Deck",
+  "description": "Zero-cloud multi-machine mission control for Kasa, Toshi, Quasimodo, Docker, and Tailscale.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0a84ff",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

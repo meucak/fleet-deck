@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="description" content="Fleet Deck — Kasa, Toshi, Quasimodo, Docker ve Tailscale için yerel komuta merkezi">
+  <title>Fleet Deck — Komuta Merkezi</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">Ana içeriğe geç</a>
+
+  <header class="topbar" role="banner">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <img src="/icons/icon.svg" alt="" class="brand-icon" width="36" height="36">
+        <div>
+          <div class="brand-title-row">
+            <h1 class="brand-title">Fleet Deck</h1>
+            <span id="wsStatusBadge" class="status-pill status-online" aria-live="polite">
+              <span class="status-symbol" aria-hidden="true">●</span>
+              <span id="wsStatusText">Canlı Akış</span>
+            </span>
+          </div>
+          <p class="brand-subtitle">
+            Kasa · Toshi · Quasimodo · Son Güncelleme: <time id="lastUpdatedTime" class="mono-num">--:--:--</time>
+          </p>
+        </div>
+      </div>
+
+      <div class="topbar-controls">
+        <div class="search-wrapper">
+          <label for="globalSearchInput" class="sr-only">Komut, konteyner veya cihaz ara</label>
+          <input
+            type="search"
+            id="globalSearchInput"
+            class="search-input"
+            placeholder="Filtrele ( / ) — eylem, konteyner, düğüm..."
+            autocomplete="off"
+          >
+        </div>
+        <button type="button" id="refreshBtn" class="btn btn-secondary" title="Telemetriyi Şimdi Yenile (Kısayol: R)">
+          <span aria-hidden="true">↻</span>
+          <span>Yenile</span>
+        </button>
+        <button type="button" id="themeToggleBtn" class="btn btn-secondary" title="Aydınlık / Karanlık Tema (Kısayol: T)" aria-label="Temayı Değiştir">
+          <span id="themeIcon" aria-hidden="true">◐</span>
+          <span id="themeLabel">Tema</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="mainContent" class="main-container" role="main">
+    <!-- Toast / Status Announcer -->
+    <div id="liveToast" class="toast-banner hidden" role="status" aria-live="polite"></div>
+
+    <!-- SECTION 1: TRI-NODE HARDWARE TELEMETRY -->
+    <section class="section-block" aria-labelledby="sectionNodesHeading">
+      <div class="section-header">
+        <div>
+          <h2 id="sectionNodesHeading" class="section-title">Cihaz Filosu Telemetrisi</h2>
+          <p class="section-desc">Kasa (Debian Sunucu), Toshi (Linux Dizüstü) ve Quasimodo (Dell E6430 Windows) anlık donanım durumu</p>
+        </div>
+        <div class="summary-counters">
+          <span class="counter-chip">
+            <span>Aktif Düğüm:</span>
+            <strong id="onlineNodesCount" class="mono-num">3 / 3</strong>
+          </span>
+          <span class="counter-chip">
+            <span>Konteyner:</span>
+            <strong id="runningDockerCount" class="mono-num">--</strong>
+          </span>
+          <span class="counter-chip">
+            <span>Tailscale:</span>
+            <strong id="tailscaleOnlineCount" class="mono-num">--</strong>
+          </span>
+        </div>
+      </div>
+
+      <div id="nodesGrid" class="nodes-grid">
+        <!-- Populated dynamically by app.js -->
+      </div>
+    </section>
+
+    <!-- SECTION 2: ONE-TAP CROSS-MACHINE ACTION DECK -->
+    <section class="section-block" aria-labelledby="sectionActionsHeading">
+      <div class="section-header">
+        <div>
+          <h2 id="sectionActionsHeading" class="section-title">Uzaktan Eylem ve Görev Güvertesi</h2>
+          <p class="section-desc">SSH anahtarlarıyla tek dokunuşta cihazlar arası güvenli komut tetikleme</p>
+        </div>
+        <nav class="segmented-control" aria-label="Cihaza göre eylem filtresi">
+          <button type="button" class="segment-btn active" data-node-filter="all">Tümü</button>
+          <button type="button" class="segment-btn" data-node-filter="toshi">Toshi</button>
+          <button type="button" class="segment-btn" data-node-filter="quasimodo">Quasimodo</button>
+          <button type="button" class="segment-btn" data-node-filter="kasa">Kasa</button>
+        </nav>
+      </div>
+
+      <div id="actionsGrid" class="actions-grid">
+        <!-- Populated dynamically by app.js -->
+      </div>
+
+      <!-- Last Action Output Console -->
+      <div id="actionOutputPanel" class="output-drawer hidden" aria-live="polite">
+        <div class="output-drawer-header">
+          <div class="output-title-group">
+            <span id="actionOutputBadge" class="status-pill status-online">● Başarılı</span>
+            <strong id="actionOutputTitle">Eylem Çıktısı</strong>
+            <span id="actionOutputMeta" class="mono-num text-muted"></span>
+          </div>
+          <button type="button" id="closeActionOutputBtn" class="btn btn-ghost" aria-label="Çıktı panelini kapat">Kapat</button>
+        </div>
+        <pre id="actionOutputPre" class="terminal-pre"></pre>
+      </div>
+    </section>
+
+    <!-- SECTION 3: DOCKER CONTAINER FLEET & WEB PORTAL -->
+    <section class="section-block" aria-labelledby="sectionDockerHeading">
+      <div class="section-header">
+        <div>
+          <h2 id="sectionDockerHeading" class="section-title">Kasa Docker Servisleri ve Hızlı Erişim</h2>
+          <p class="section-desc">Doğrudan <code>/var/run/docker.sock</code> üzerinden konteyner denetimi, port bağlantıları ve canlı loglar</p>
+        </div>
+      </div>
+
+      <!-- Quick Service Launch Strip -->
+      <div id="servicePortalGrid" class="service-portal-grid" aria-label="Aktif Web Uygulamaları">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- Docker Containers Table / Cards -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="fleet-table" aria-label="Docker Konteyner Listesi">
+            <thead>
+              <tr>
+                <th scope="col">Durum</th>
+                <th scope="col">Konteyner</th>
+                <th scope="col">İmaj</th>
+                <th scope="col">Çalışma Süresi</th>
+                <th scope="col">Port / Bağlantı</th>
+                <th scope="col" class="text-right">Denetim</th>
+              </tr>
+            </thead>
+            <tbody id="dockerTableBody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: SAFE AD-HOC TERMINAL DISPATCH & AUDIT LOG -->
+    <section class="section-block two-col-layout" aria-labelledby="sectionTerminalHeading">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h2 id="sectionTerminalHeading" class="section-title">Güvenli Komut İstemcisi (Headless SSH)</h2>
+          <p class="section-desc">Çökme korumalı (8 sn zaman aşımı + yıkıcı komut filtresi) hızlı kabuk çalıştırıcı</p>
+        </div>
+
+        <form id="terminalForm" class="terminal-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="terminalNodeSelect" class="form-label">Hedef Cihaz</label>
+              <select id="terminalNodeSelect" class="form-select">
+                <option value="kasa">Kasa (100.69.155.110 — Debian Host)</option>
+                <option value="toshi">Toshi (100.79.246.19 — Linux Laptop)</option>
+                <option value="quasimodo">Quasimodo (100.108.206.20 — Windows 6430a)</option>
+              </select>
+            </div>
+            <div class="form-group form-group-grow">
+              <label for="terminalCommandInput" class="form-label">Komut</label>
+              <input
+                type="text"
+                id="terminalCommandInput"
+                class="form-input mono-input"
+                placeholder="Örn: uptime && df -h"
+                required
+              >
+            </div>
+            <div class="form-group form-group-btn">
+              <button type="submit" id="terminalRunBtn" class="btn btn-primary">Çalıştır</button>
+            </div>
+          </div>
+
+          <div class="preset-chips" aria-label="Hazır Tanılama Komutları">
+            <button type="button" class="chip-btn" data-preset-node="kasa" data-preset-cmd="uptime && df -h / /host-depo">Kasa Disk &amp; Uptime</button>
+            <button type="button" class="chip-btn" data-preset-node="toshi" data-preset-cmd="uptime && free -m && sensors 2>/dev/null || cat /sys/class/thermal/thermal_zone0/temp">Toshi Termal &amp; Bellek</button>
+            <button type="button" class="chip-btn" data-preset-node="toshi" data-preset-cmd="ps aux --sort=-%mem | head -n 10">Toshi En Çok RAM Kullananlar</button>
+            <button type="button" class="chip-btn" data-preset-node="quasimodo" data-preset-cmd="C:\rclone\rclone.exe lsd gdrive:apps">Quasimodo GDrive Apps</button>
+            <button type="button" class="chip-btn" data-preset-node="quasimodo" data-preset-cmd="wmic process where 'WorkingSetSize > 50000000' get Name,ProcessId,WorkingSetSize">Quasimodo Aktif Süreçler</button>
+          </div>
+        </form>
+
+        <div class="terminal-output-wrap">
+          <div class="terminal-bar">
+            <span id="terminalStatusLabel" class="mono-num">Hazır</span>
+            <span id="terminalDurationLabel" class="mono-num text-muted"></span>
+          </div>
+          <pre id="terminalConsoleOutput" class="terminal-pre">Bir hazır komut seçin veya yukarıdan komut gönderin.</pre>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-header">
+          <h2 class="section-title">Son İşlem Kayıtları (Audit Log)</h2>
+          <p class="section-desc">Tetiklenen son eylemler, çalışma süreleri ve durum özetleri</p>
+        </div>
+        <div id="auditLogList" class="audit-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: TAILSCALE MESH RADAR & DEPO STORAGE VAULT -->
+    <section class="section-block two-col-layout" aria-labelledby="sectionTailscaleHeading">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h2 id="sectionTailscaleHeading" class="section-title">Tailscale Ağ Radarı</h2>
+          <p class="section-desc">Doğrudan <code>tailscaled.sock</code> üzerinden tüm ağ düğümleri ve trafik sayaçları</p>
+        </div>
+        <div id="tailscaleNodesList" class="tailscale-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-header">
+          <h2 class="section-title">Depo Kasası ve Paras Gelen Kutusu</h2>
+          <p class="section-desc"><code>/home/kasa/Depo</code> uygulama arşivi, müzik kütüphanesi ve ISO kalıpları</p>
+        </div>
+        <div id="depoOverviewBox" class="depo-box">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ACCESSIBLE CONFIRMATION MODAL (Apple HIG Destructive / Power Action Gate) -->
+  <div id="confirmModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalDesc">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <span class="status-pill status-warning">▲ Onay Gerekiyor</span>
+        <h3 id="confirmModalTitle" class="modal-title">İşlemi Onaylayın</h3>
+      </div>
+      <p id="confirmModalDesc" class="modal-desc"></p>
+      <div class="modal-actions">
+        <button type="button" id="confirmCancelBtn" class="btn btn-secondary">Vazgeç (Esc)</button>
+        <button type="button" id="confirmProceedBtn" class="btn btn-danger">Onayla ve Çalıştır</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCKER CONTAINER LOGS MODAL -->
+  <div id="logsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="logsModalTitle">
+    <div class="modal-sheet modal-sheet-wide">
+      <div class="modal-header modal-header-row">
+        <div>
+          <h3 id="logsModalTitle" class="modal-title">Konteyner Logları</h3>
+          <p id="logsModalSubtitle" class="section-desc">Son 80 satır (stdout / stderr)</p>
+        </div>
+        <div class="modal-header-btns">
+          <button type="button" id="refreshLogsBtn" class="btn btn-secondary">Yenile</button>
+          <button type="button" id="closeLogsModalBtn" class="btn btn-secondary">Kapat (Esc)</button>
+        </div>
+      </div>
+      <pre id="logsModalPre" class="terminal-pre logs-pre">Yükleniyor...</pre>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
