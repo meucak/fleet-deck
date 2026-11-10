@@ -1,6 +1,6 @@
 {
   "name": "fleet-deck",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "Fleet Deck — Sovereign Multi-Machine Mission Control (Kasa, Toshi, Quasimodo, Docker, Tailscale & Depo)",
   "main": "server/index.js",
   "type": "commonjs",

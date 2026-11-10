@@ -68,7 +68,7 @@ function createFleetServer(options = {}) {
         sendJson(res, 200, {
           ok: true,
           service: 'fleet-deck',
-          version: '2.0.0',
+          version: '3.0.0',
           uptimeSeconds: Math.floor(process.uptime()),
           timestamp: new Date().toISOString()
         });

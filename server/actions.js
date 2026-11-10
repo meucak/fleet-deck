@@ -219,6 +219,9 @@ async function executeAction(actionId, deps = {}) {
     error: execRes.ok ? null : (execRes.stderr || (execRes.timedOut ? 'Command timed out (8s limit)' : 'Action returned non-zero exit code'))
   };
 
+  if (action.id === 'kasa-clean-temp' && execRes.ok) {
+    clearAuditLog();
+  }
   recordAudit(result);
   return result;
 }
