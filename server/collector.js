@@ -99,20 +99,25 @@ function createFleetCollector(deps = {}) {
 
   const lastKnownStoragePath = deps.lastKnownStoragePath || process.env.LAST_KNOWN_PATH || path.join(__dirname, 'data', 'last-known-nodes.json');
   const lastKnownMap = new Map();
-  let lastKnownLoaded = false;
+  let loadPromise = null;
 
-  async function ensureLastKnownLoaded() {
-    if (lastKnownLoaded) return;
-    lastKnownLoaded = true;
-    try {
-      const raw = await fs.readFile(lastKnownStoragePath, 'utf8');
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') {
-        for (const [k, v] of Object.entries(parsed)) {
-          lastKnownMap.set(k, v);
-        }
-      }
-    } catch (_) {}
+  function ensureLastKnownLoaded() {
+    if (!loadPromise) {
+      loadPromise = (async () => {
+        try {
+          const raw = await fs.readFile(lastKnownStoragePath, 'utf8');
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            for (const [k, v] of Object.entries(parsed)) {
+              if (!lastKnownMap.has(k)) {
+                lastKnownMap.set(k, v);
+              }
+            }
+          }
+        } catch (_) {}
+      })();
+    }
+    return loadPromise;
   }
 
   async function recordLastKnown(nodeKey, metrics) {
@@ -125,7 +130,9 @@ function createFleetCollector(deps = {}) {
     try {
       await fs.mkdir(path.dirname(lastKnownStoragePath), { recursive: true });
       const obj = Object.fromEntries(lastKnownMap.entries());
-      await fs.writeFile(lastKnownStoragePath, JSON.stringify(obj, null, 2), 'utf8');
+      const tmpPath = `${lastKnownStoragePath}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`;
+      await fs.writeFile(tmpPath, JSON.stringify(obj, null, 2), 'utf8');
+      await fs.rename(tmpPath, lastKnownStoragePath);
     } catch (_) {}
   }
 

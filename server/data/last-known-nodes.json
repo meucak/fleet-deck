@@ -1,42 +1,33 @@
 {
-  "toshi": {
-    "node": "toshi",
-    "hostname": "toshi",
-    "ip": "100.79.246.19",
-    "os": "Linux (LXQt)",
+  "quasimodo": {
+    "node": "quasimodo",
+    "hostname": "Quasimodo",
+    "model": "Dell Latitude E6430",
+    "ip": "100.108.206.20",
+    "os": "Windows",
     "online": true,
-    "cpuPercent": 5,
-    "load": {
-      "load1": 0.2,
-      "load5": 0.2,
-      "load15": 0.2
-    },
-    "temperatureC": 0,
-    "battery": {
-      "percent": 100,
-      "status": "Full"
-    },
+    "cpuPercent": 4,
     "memory": {
-      "totalMb": 0,
-      "usedMb": 0,
-      "availableMb": 0,
-      "percent": 0
+      "totalMb": 8063,
+      "usedMb": 4120,
+      "freeMb": 3943,
+      "percent": 51.1
     },
     "disk": {
-      "totalMb": 0,
-      "usedMb": 0,
-      "availableMb": 0,
-      "percent": 0
+      "drive": "C:",
+      "totalGb": 222.9,
+      "usedGb": 187.0,
+      "freeGb": 35.9,
+      "percent": 83.9
     },
-    "wifi": {
-      "interface": "wlp8s0",
-      "linkQuality": 0,
-      "qualityPercent": 0,
-      "signalDbm": 0
+    "battery": {
+      "percent": 100,
+      "rawPercent": 563,
+      "statusCode": 2,
+      "status": "AC Direct (100%)",
+      "quirkNormalized": true
     },
-    "controlCenterService": "unknown",
-    "uptimeSeconds": 0,
-    "pingMs": 15,
-    "lastSeenOnlineAt": "2026-11-10T22:11:35.322Z"
+    "pingMs": 14,
+    "lastSeenOnlineAt": "2026-11-10T21:58:00.000Z"
   }
 }
