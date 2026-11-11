@@ -1,5 +1,5 @@
 @echo off
-set URL=http://100.69.155.110:8091
+set URL=http://fleetdeck.com
 where msedge >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
     start "" msedge --app=%URL%
